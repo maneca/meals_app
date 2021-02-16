@@ -1,20 +1,83 @@
 import 'package:flutter/material.dart';
+import './dummy_data.dart';
+import './screens/filters_screen.dart';
+import './screens/tabs_screen.dart';
+import './screens/meal_details_screen.dart';
 import './screens/categories_screen.dart';
 import './screens/category_meals_screen.dart';
+import './models/meal.dart';
 
 void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   // This widget is the root of your application.
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Map<String, bool> _filters = {
+    "gluten": false,
+    "lactose": false,
+    "vegan": false,
+    "vegetarian": false
+  };
+
+  List<Meal> _availableMeals = DUMMY_MEALS;
+  List<Meal> _favouriteMeals = new List<Meal>();
+
+  void _setFilters(Map<String, bool> filters){
+    setState(() {
+      _filters = filters;
+      _availableMeals = DUMMY_MEALS.where((meal) {
+        if(_filters['gluten'] && !meal.isGlutenFree){
+          return false;
+        }
+
+        if(_filters['lactose'] && !meal.isLactoseFree){
+          return false;
+        }
+
+        if(_filters['vegan'] && !meal.isVegan){
+          return false;
+        }
+
+        if(_filters['vegetarian'] && !meal.isVegetarian){
+          return false;
+        }
+
+        return true;
+      }).toList();
+    });
+  }
+
+  void _toggleFavourite(String mealId){
+    final existingIndex = _favouriteMeals.indexWhere((meal) => meal.id == mealId);
+
+    if(existingIndex >= 0){
+      setState(() {
+        _favouriteMeals.removeAt(existingIndex);
+      });
+    }else{
+      setState(() {
+        _favouriteMeals.add(DUMMY_MEALS.firstWhere((meal) => meal.id == mealId));
+      });
+    }
+  }
+
+  bool _isMealFavourite(String id){
+    return _favouriteMeals.any((meal) => meal.id == id);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Deli Meals',
       theme: ThemeData(
-          primarySwatch: Colors.pink,
-          accentColor: Colors.amber,
+          primarySwatch: Colors.blue,
+          accentColor: Colors.orange,
           canvasColor: Color.fromRGBO(255, 254, 229, 1),
           fontFamily: 'Raleway',
           textTheme: ThemeData.light().textTheme.copyWith(
@@ -24,9 +87,22 @@ class MyApp extends StatelessWidget {
                   fontSize: 20,
                   fontFamily: "RobotoCondensed",
                   fontWeight: FontWeight.bold))),
-      home: CategoriesScreen(),
+      home: TabsScreen(_favouriteMeals),
       routes: {
-        CategoryMealsScreen.routeName: (ctx) => CategoryMealsScreen()
+        CategoryMealsScreen.routeName: (ctx) => CategoryMealsScreen(_availableMeals),
+        MealDetailsScreen.routeName: (ctx) => MealDetailsScreen(_toggleFavourite, _isMealFavourite),
+        FiltersScreen.routeName: (ctx) => FiltersScreen(_filters, _setFilters),
+      },
+      // It takes a function which executes for any named navigation action (pushNamed)
+      // for which no registered route was found in the routes table
+      onGenerateRoute: (settings){
+        print(settings.arguments);
+        return MaterialPageRoute(builder: (ctx) => CategoriesScreen());
+      },
+      // this is called when there isn't a route or an onGeneratedRoute
+      // defined, so it does not throw an error
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (ctx) => CategoriesScreen());
       },
     );
   }

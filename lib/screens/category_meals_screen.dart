@@ -1,37 +1,44 @@
 import 'package:flutter/material.dart';
-import '../widgets/meal_item.dart';
-import '../dummy_data.dart';
+import '../widgets/listview_meal_item.dart';
+import '../models/meal.dart';
 
-class CategoryMealsScreen extends StatelessWidget {
-  // final String categoryId;
-  // final String categoryTitle;
-  //
-  // CategoryMealsScreen(this.categoryId, this.categoryTitle);
+class CategoryMealsScreen extends StatefulWidget {
   static const routeName = '/category-meals';
+  final List<Meal> availableMeals;
+
+  CategoryMealsScreen(this.availableMeals);
+
+  @override
+  _CategoryMealsScreenState createState() => _CategoryMealsScreenState();
+}
+
+class _CategoryMealsScreenState extends State<CategoryMealsScreen> {
+  List<Meal> categoryMeals;
+  String categoryTitle;
+  var _loadedInitData = false;
+
+  // This is called when the references of the state have changed
+  @override
+  void didChangeDependencies() {
+    if (!_loadedInitData) {
+      final routeArgs =
+          ModalRoute.of(context).settings.arguments as Map<String, String>;
+      categoryTitle = routeArgs['title'];
+      final categoryID = routeArgs['id'];
+      categoryMeals = widget.availableMeals.where((meal) {
+        return meal.categories.contains(categoryID);
+      }).toList();
+      _loadedInitData = true;
+    }
+
+    super.didChangeDependencies();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final routeArgs =
-        ModalRoute.of(context).settings.arguments as Map<String, String>;
-    final categoryTitle = routeArgs['title'];
-    final categoryID = routeArgs['id'];
-    final categoryMeals = DUMMY_MEALS.where((meal) {
-      return meal.categories.contains(categoryID);
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(title: Text(categoryTitle)),
-      body: ListView.builder(
-        itemBuilder: (ctx, index) {
-          return MealItem(
-              title: categoryMeals[index].title,
-              imageUrl: categoryMeals[index].imageUrl,
-              duration: categoryMeals[index].duration,
-              complexity: categoryMeals[index].complexity,
-              affordability: categoryMeals[index].affordability);
-        },
-        itemCount: categoryMeals.length,
-      ),
+      body: ListViewMealItem(categoryMeals),
     );
   }
 }
